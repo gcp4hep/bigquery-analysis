@@ -12,10 +12,12 @@ def main():
 @main.command()
 @click.argument('parquet-file')
 @click.argument('jsonl-file')
-def prep_jsonl(parquet_file,jsonl_file):
+@click.option('--max-events', default = None)
+def prep_jsonl(parquet_file,jsonl_file,max_events):
     data = ak.from_parquet(parquet_file)
 
-    what = json.loads(ak.to_json(data[:10]))
+    sl = slice(None,max_events)
+    what = json.loads(ak.to_json(data[sl]))
 
     with open(jsonl_file,'w') as f:
         for d in what:
