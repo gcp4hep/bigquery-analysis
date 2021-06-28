@@ -27,12 +27,14 @@ def prep_jsonl(parquet_file,jsonl_file,max_events):
             d['METAssoc_MET'] = []
             f.write(f'{json.dumps(d)}'+'\n')
 
+
 @main.command()
 @click.argument('jsonl-file')
 @click.argument('table_name')
 @click.option('--gcp-project', default = 'gke-dev-311213')
 @click.option('--gcp-dataset', default = 'PHYSLITE100TB')
-def load_data(jsonl_file,table_name,gcp_project,gcp_dataset):
+@click.option('--local/--remote', default = 'PHYSLITE100TB')
+def load_data(jsonl_file,table_name,gcp_project,gcp_dataset,local):
     client = bigquery.Client()
 
     table_id = f"{gcp_project}.{gcp_dataset}.{table_name}"
@@ -41,10 +43,17 @@ def load_data(jsonl_file,table_name,gcp_project,gcp_dataset):
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
     )
 
-    with open(jsonl_file, "rb") as source_file:
-        load_job = client.load_table_from_file(
-            source_file, table_id, job_config=job_config
+    if local:
+        with open(jsonl_file, "rb") as source_file:
+            load_job = client.load_table_from_file(
+                source_file, table_id, job_config=job_config
+            )
+    else:
+        uri = jsonl_file
+        load_job = client.load_table_from_uri(
+            uri, table_id, job_config=job_config
         )
+
     try:
         load_job.result()
     except BadRequest as ex:
